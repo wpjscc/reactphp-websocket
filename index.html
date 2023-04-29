@@ -7,24 +7,27 @@
 
 <div id="output"></div>
 
-<button onclick="ws.send('hello')">发送</button>
+<button onclick="ws1.send('hello')">发送</button>
 
 <script>
 	// 创建 WebSocket 实例
-	var ws = new WebSocket("ws://10.8.0.9:8088/websocket");
+	var ws1 = new WebSocket("ws://10.8.0.9:8088/websocket");
 
 	// 当连接打开时执行
-	ws.onopen = function(event) {
+	ws1.onopen = function(event) {
+		console.log('onopen')
 		document.getElementById("output").innerHTML += "Connected to WebSocket server.<br>";
 	};
 
 	// 当接收到消息时执行
-	ws.onmessage = function(event) {
+	ws1.onmessage = function(event) {
+		console.log('message')
+
 		document.getElementById("output").innerHTML += "Received message: " + event.data + "<br>";
 	};
 
 	// 当连接关闭时执行
-	ws.onclose = function(event) {
+	ws1.onclose = function(event) {
 		document.getElementById("output").innerHTML += "Disconnected from WebSocket server.<br>";
 	};
 </script>

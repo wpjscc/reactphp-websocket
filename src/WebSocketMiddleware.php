@@ -84,6 +84,11 @@ final class WebSocketMiddleware
             $permessageDeflateOptions[0]
         );
 
+        $response->getBody()->input->on('pipe', function($connection) use ($conn) {
+            $connection->once('data', function($msg) use ($conn) {
+                $conn->emit('open', [$conn]);
+            });
+        });
         call_user_func($this->connectionHandler, $conn, $request, $response);
 
         return $response;

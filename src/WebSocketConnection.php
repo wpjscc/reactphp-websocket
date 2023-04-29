@@ -28,14 +28,14 @@ class WebSocketConnection implements EventEmitterInterface
 
     private $messageBuffer;
 
-    public $cliendId;
+    public $client_id;
 
     public function __construct(DuplexStreamInterface $stream, WebSocketOptions $webSocketOptions, PermessageDeflateOptions $permessageDeflateOptions)
     {
         $this->stream                   = $stream;
         $this->webSocketOptions         = $webSocketOptions;
         $this->permessageDeflateOptions = $permessageDeflateOptions;
-        $this->cliendId = bin2hex(openssl_random_pseudo_bytes(16));
+        $this->client_id = bin2hex(openssl_random_pseudo_bytes(16));
 
         $mb = new MessageBuffer(
             new CloseFrameChecker(),
