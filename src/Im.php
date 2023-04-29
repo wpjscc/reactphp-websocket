@@ -39,6 +39,7 @@ class Im
     {
         // todo handle message
         echo $msg."\n";
+        $from->send($msg);
     }
 
     public function onClose(WebSocketConnection $conn)

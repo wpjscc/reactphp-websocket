@@ -16,6 +16,13 @@ $server = new \React\Http\HttpServer(
     ], new Im),
     function (\Psr\Http\Message\ServerRequestInterface $request) {
        
+        $path = $request->getUri()->getPath();
+
+        if ($path == '/') {
+            return \React\Http\Message\Response::html(file_get_contents('./index.html'));
+        }
+
+
         $queryParams = $request->getQueryParams();
 
         $type = $queryParams['type'] ?? '';
@@ -155,19 +162,19 @@ $server = new \React\Http\HttpServer(
         $msg = $queryParams['msg'] ?? '';
 
         $str = <<<EOF
-        <a href="/?type=bind&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">bind</a><br>
-        <a href="/?type=unBind&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">unBind(依赖【bind】)</a><br>
-        <a href="/?type=unBindByClientId&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">unBindByClientId</a><br>
-        <a href="/?type=joinGroup&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">joinGroup-(依赖【bind】)</a><br>
-        <a href="/?type=joinGroupByClientId&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">joinGroupByClientId</a><br>
-        <a href="/?type=leaveGroup&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">leaveGroup-(依赖【bind】【joinGroup】)</a><br>
-        <a href="/?type=leaveGroupByClientId&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">leaveGroupByClientId</a><br>
-        <a href="/?type=leaveAllGroup&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">leaveAllGroup-(依赖【bind】【joinGroup】)</a><br>
-        <a href="/?type=leaveAllGroupByClientId&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">leaveAllGroupByClientId</a><br>
-        <a href="/?type=sendMessage&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">sendMessage-(依赖【bind】)</a><br>
-        <a href="/?type=sendMessageByClientId&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">sendMessageByClientId</a><br>
-        <a href="/?type=sendMessageToGroup&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">sendMessageToGroup-(依赖【bind】【joinGroup】)</a><br>
-        <a href="/?type=sendMessageToGroupByClientId&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">sendMessageToGroupByClientId</a><br>
+        <a href="/test?type=bind&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">bind</a><br>
+        <a href="/test?type=unBind&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">unBind(依赖【bind】)</a><br>
+        <a href="/test?type=unBindByClientId&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">unBindByClientId</a><br>
+        <a href="/test?type=joinGroup&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">joinGroup-(依赖【bind】)</a><br>
+        <a href="/test?type=joinGroupByClientId&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">joinGroupByClientId</a><br>
+        <a href="/test?type=leaveGroup&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">leaveGroup-(依赖【bind】【joinGroup】)</a><br>
+        <a href="/test?type=leaveGroupByClientId&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">leaveGroupByClientId</a><br>
+        <a href="/test?type=leaveAllGroup&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">leaveAllGroup-(依赖【bind】【joinGroup】)</a><br>
+        <a href="/test?type=leaveAllGroupByClientId&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">leaveAllGroupByClientId</a><br>
+        <a href="/test?type=sendMessage&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">sendMessage-(依赖【bind】)</a><br>
+        <a href="/test?type=sendMessageByClientId&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">sendMessageByClientId</a><br>
+        <a href="/test?type=sendMessageToGroup&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">sendMessageToGroup-(依赖【bind】【joinGroup】)</a><br>
+        <a href="/test?type=sendMessageToGroupByClientId&id=$id&client_id=$client_id&group_id=$group_id&msg=$msg">sendMessageToGroupByClientId</a><br>
         EOF;
 
         return React\Http\Message\Response::html(
