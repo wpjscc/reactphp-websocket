@@ -93,8 +93,9 @@ class ImClient
     {
         $client = Im::$client_id_to_client[$client_id] ?? null;
         if ($client) {
-            Im::joinGroup($group_id, $client);
+            return Im::joinGroup($group_id, $client);
         }
+        return false;
     }
 
 
@@ -115,9 +116,9 @@ class ImClient
     {
         $client = Im::$client_id_to_client[$cliend_id] ?? null;
         if ($client) {
-            Im::leaveGroup($group_id, $client);
+            return Im::leaveGroup($group_id, $client);
         }
-
+        return false;
     }
 
 
@@ -194,8 +195,30 @@ class ImClient
                     }
                 }
             }
-            Im::sendMessageToGroup($group_id, $message, $excludeClients);
+            return Im::sendMessageToGroup($group_id, $message, $excludeClients);
         }
+        return false;
+    }
+
+    public static function isInGroup($group_id, $id)
+    {
+        $client_ids = Im::$id_to_client_ids[$id] ?? [];
+        foreach ($client_ids as $client_id) {
+            $group_ids = Im::$client_id_to_group_ids[$client_id] ?? [];
+            if (in_array($group_id, $group_ids)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static function isInGroupByClientId($group_id, $client_id)
+    {
+        $group_ids = Im::$client_id_to_group_ids[$client_id] ?? [];
+        if (in_array($group_id, $group_ids)) {
+            return true;
+        }
+        return false;
     }
 
     // 给用户ID下的所有房间发送消息
@@ -254,21 +277,40 @@ class ImClient
         return count(Im::$client_id_to_client);
     }
 
-    // clientid 加入房间数量
-    public static function getClientGroupCount($client_id)
-    {
-        return count(Im::$client_id_to_group_ids[$client_id] ?? []);
-    }
 
-    // id 加入房间数量
-    public static function getIdGroupCount($id)
+    public static function getGrouIdsById($id)
     {
         $cliend_ids = Im::$id_to_client_ids[$id] ?? [];
         $group_ids = [];
         foreach ($cliend_ids as $client_id) {
             $group_ids = array_unique(array_merge($group_ids, Im::$client_id_to_group_ids[$client_id] ?? []));
         }
-        return count($group_ids);
+        return $group_ids;
     }
+
+    public static function getGroupIdsByClientId($client_id)
+    {
+        return Im::$client_id_to_group_ids[$client_id] ?? [];
+    }
+
+    // id 加入房间数量
+    public static function getGroupCountById($id)
+    {
+        return count(static::getGrouIdsById($id));
+    }
+
+    // clientid 加入房间数量
+    public static function getGroupCountByClientId($client_id)
+    {
+        return count(static::getGroupIdsByClientId($client_id));
+    }
+
+
+    public static function isExistByClientId($client_id)
+    {
+        return isset(Im::$client_id_to_client[$client_id]);
+    }
+
+
 
 }

@@ -7,13 +7,233 @@ use Wpjscc\Websocket\Chat;
 use Wpjscc\Websocket\Im;
 use Wpjscc\Websocket\ImClient;
 use Wpjscc\Websocket\Helper;
+use Wpjscc\Websocket\WebSocketConnection;
 
-$chat = null;
+
+$im = new Im;
+
+$im->on('open', function(WebSocketConnection $conn){
+    ImClient::sendMessageByClientId($conn->client_id, json_encode([
+        'event_type' => 'bind',
+        'data' => [
+            'client_id' => $conn->client_id,
+            'msg' => 'bind success:'.$conn->client_id
+        ]
+    ]));
+});
+
+$im->on('echo', function(WebSocketConnection $conn, $data){
+    $conn->send(json_encode([
+        'event_type' => 'echo',
+        'data' => [
+            'client_id' => $conn->client_id,
+            'msg' => $data['value'] ?? ''
+        ]
+    ]));
+});
+
+$im->on('sendMessageByClientId', function(WebSocketConnection $from, $data){
+    $client_id = $data['client_id'] ?? '';
+    $msg = $data['value'] ?? '';
+    if (!$client_id){
+        ImClient::sendMessageByClientId($from->client_id, json_encode([
+            'event_type' => 'sendMessageByClientId',
+            'data' => [
+                'client_id' => $from->client_id,
+                'msg' => 'client_id is empty'
+            ]
+        ]));
+        return;
+    }
+
+    if (ImClient::isExistByClientId($client_id) === false) {
+        ImClient::sendMessageByClientId($from->client_id, json_encode([
+            'event_type' => 'sendMessageByClientId',
+            'data' => [
+                'client_id' => $from->client_id,
+                'msg' => 'client_id is not exist'
+            ]
+        ]));
+        return;
+    }
+
+    if (!$msg){
+        ImClient::sendMessageByClientId($from->client_id, json_encode([
+            'event_type' => 'sendMessageByClientId',
+            'data' => [
+                'client_id' => $from->client_id,
+                'msg' => 'msg is empty'
+            ]
+        ]));
+        return;
+    }
+    ImClient::sendMessageByClientId($from->client_id, json_encode([
+        'event_type' => 'sendMessageByClientId',
+        'data' => [
+            'client_id' => $from->client_id,
+            'msg' => '【from】【'.$from->client_id.'】'.'发送成功'
+        ]
+    ]));
+    ImClient::sendMessageByClientId($client_id, json_encode([
+        'event_type' => 'sendMessageByClientId',
+        'data' => [
+            'client_id' => $from->client_id,
+            'msg' => '【from】【'.$client_id.'】'.$msg
+        ]
+    ]));
+});
+
+$im->on('joinGroupByClientId', function(WebSocketConnection $from, $data){
+    $group_id = $data['group_id'] ?? '';
+    $client_id = $data['client_id'] ?? '';
+    if (!$group_id){
+        ImClient::sendMessageByClientId($client_id, json_encode([
+            'event_type' => 'joinGroupByClientId',
+            'data' => [
+                'client_id' => $client_id,
+                'msg' => 'group_id is empty'
+            ]
+        ]));
+        return;
+    }
+    $state = ImClient::joinGroupByClientId($group_id, $client_id);
+
+    $msg = "join $group_id success";
+    if (!$state) {
+        $msg = "加入 $group_id 失败";
+    } elseif ($state === 1) {
+        $msg = "已经加入 $group_id";
+    } 
+
+    // 加入房间后发送一条消息（不需要绑定）
+    ImClient::sendMessageToGroupByClientId($group_id, json_encode([
+        'event_type' => 'joinGroupByClientId',
+        'data' => [
+            'client_id' => $client_id,
+            'msg' => "【 $group_id 】".'【'.$client_id.'】'.$msg
+        ]
+    ]));
+    // 你已经加入的房间为
+    $groupIds = ImClient::getGroupIdsByClientId($client_id);
+
+    ImClient::sendMessageByClientId($client_id, json_encode([
+        'event_type' => 'joinGroupByClientId',
+        'data' => [
+            'client_id' => $client_id,
+            'msg' => "【 $group_id 】".'【'.$client_id.'】加入的所有房间ID为'.implode(',', $groupIds)
+        ]
+    ]));
+
+});
+
+$im->on('leaveGroupByClientId', function(WebSocketConnection $from, $data){
+    $group_id = $data['group_id'] ?? '';
+    $client_id = $data['client_id'] ?? '';
+    if (!$group_id){
+        ImClient::sendMessageByClientId($client_id, json_encode([
+            'event_type' => 'leaveGroupByClientId',
+            'data' => [
+                'client_id' => $client_id,
+                'msg' => 'group_id is empty'
+            ]
+        ]));
+        return;
+    }
+    $state = ImClient::leaveGroupByClientId($group_id, $client_id);
+
+    $msg = "leave room-$group_id success";
+    if (!$state) {
+        $msg = "离开 room-$group_id 失败";
+    } elseif ($state === 1) {
+        $msg = "已经离开 room-$group_id";
+    } 
+
+    // 离开房间后发送一条消息（不需要绑定）
+    ImClient::sendMessageToGroupByClientId($group_id, json_encode([
+        'event_type' => 'leaveGroupByClientId',
+        'data' => [
+            'client_id' => $client_id,
+            'msg' => "【 $group_id 】".'【'.$client_id.'】'.$msg
+        ]
+    ]));
+
+    // 你已经加入的房间为
+    $groupIds = ImClient::getGroupIdsByClientId($client_id);
+    ImClient::sendMessageByClientId($client_id, json_encode([
+        'event_type' => 'leaveGroupByClientId',
+        'data' => [
+            'client_id' => $client_id,
+            'msg' => "【 $group_id 】".'【'.$client_id.'】'.$msg.'您加入的所有房间ID为'.implode(',', $groupIds)
+        ]
+    ]));
+});
+
+$im->on('sendMessageToGroupByClientId', function(WebSocketConnection $from, $data){
+    $group_id = $data['group_id'] ?? '';
+    $client_id = $data['client_id'] ?? '';
+    $msg = $data['value'] ?? '';
+    if (!$group_id){
+        $from->send(json_encode([
+            'event_type' => 'sendMessageToGroupByClientId',
+            'data' => [
+                'client_id' => $client_id,
+                'msg' => 'group_id is empty'
+            ]
+        ]));
+        return;
+    }
+
+    if (!ImClient::isInGroupByClientId($group_id, $client_id)) {
+        ImClient::sendMessageByClientId($client_id, json_encode([
+            'event_type' => 'sendMessageToGroupByClientId',
+            'data' => [
+                'client_id' => $client_id,
+                'msg' => "【 $group_id 】".'你不在 '.$group_id.' 中'
+            ]
+        ]));
+        return;
+    }
+
+    $state = ImClient::sendMessageToGroupByClientId($group_id, json_encode([
+        'event_type' => 'sendMessageToGroupByClientId',
+        'data' => [
+            'client_id' => $client_id,
+            'msg' => "【 $group_id 】".'【'.$client_id.'】'.$msg
+        ]
+    ]));
+
+    $msg = "send $group_id success";
+    if (!$state) {
+        $msg = "发送 $group_id 失败";
+        ImClient::sendMessageByClientId($client_id, json_encode([
+            'event_type' => 'sendMessageToGroupByClientId',
+            'data' => [
+                'client_id' => $client_id,
+                'msg' => "【 $group_id 】".'【'.$client_id.'】'.$msg
+            ]
+        ]));
+    } elseif ($state === 1) {
+        $msg = "没有人在 $group_id";
+        ImClient::sendMessageByClientId($client_id, json_encode([
+            'event_type' => 'sendMessageToGroupByClientId',
+            'data' => [
+                'client_id' => $client_id,
+                'msg' =>"【 $group_id 】".'【'.$client_id.'】'. $msg
+            ]
+        ]));
+    }
+
+   
+});
+
+$im->on('close', function($code, $conn, $reason){
+
+});
 
 $server = new \React\Http\HttpServer(
     new WebSocketMiddleware([
         '/websocket'
-    ], new Im),
+    ], $im),
     function (\Psr\Http\Message\ServerRequestInterface $request) {
        
         $path = $request->getUri()->getPath();

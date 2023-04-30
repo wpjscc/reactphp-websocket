@@ -5,29 +5,116 @@
 </head>
 <body>
 
-<div id="output"></div>
+	<div style="display: flex; justify-content: center;">
+		<div>
+			<h1>WebSocket Example</h1>
+			<div id="output"></div>
+			<div style="display:flex;align-items: center; width: 100%;">
+				<textarea
+				placeholder=""
+				placeholder-class="textarea-placeholder"/></textarea>
+				<button onclick="im.send('echo', {
+					value: this.parentNode.querySelector('textarea').value
+				})">发送</button>
+			</div>
+			<div style="display:flex;align-items: center; width: 100%;">
+				<input type="text" placeholder="请打开另外一个窗口获取client_id" id="to_client_id"/>
+				<input type="text" placeholder="message" id="to_client_value"/>
 
-<button onclick="ws1.send('hello')">发送</button>
+				<button onclick="im.send('sendMessageByClientId', {
+					client_id: document.querySelector('#to_client_id').value,
+					value: document.querySelector('#to_client_value').value
+				})">发送给对方</button>
+			</div>
+			<div style="display:flex;align-items: center; width: 100%;">
+				<input type="text" placeholder="房间号" id="group_id"/>
+				<button onclick="im.send('joinGroupByClientId', {
+					client_id: im.client_id,
+					group_id: document.querySelector('#group_id').value
+				})">加入房间</button>
+				<button onclick="im.send('leaveGroupByClientId', {
+					client_id: im.client_id,
+					group_id: document.querySelector('#group_id').value
+				})">离开房间</button>
+				<textarea
+				placeholder=""
+				placeholder-class="textarea-placeholder"></textarea>
+				<button onclick="im.send('sendMessageToGroupByClientId', {
+					client_id: im.client_id,
+					group_id: document.querySelector('#group_id').value,
+					value: this.previousElementSibling.value
+				})">发送消息</button>
+			</div>
+			<div style="display:flex;align-items: center; width: 100%;">
+				<button
+					onclick="im.clear()"
+				>
+					清除消息
+				</button>
+			</div>
+		</div>
+		
+	</div>
+
 
 <script>
 	// 创建 WebSocket 实例
-	var ws1 = new WebSocket("ws://10.8.0.9:8088/websocket");
+	var ws = new WebSocket("ws://10.8.0.9:8088/websocket");
+
+
+	var im = {
+		client_id: null,
+		emit(event) {
+			if (this[event.event_type]){
+				this[event.event_type](event.event_type, event.data)
+			} else {
+				if (event.data && event.data.msg) {
+					document.getElementById("output").innerHTML += "" + event.data.msg + "<br><br>";
+				} else {
+					console.log('不支持的事件类型')
+				}
+			}
+		},
+		on(eventName, callback){
+			this[eventName] = callback.bind(this)
+		},
+		send(event_type, data) {
+			ws.send(JSON.stringify({
+				event_type,
+				data
+			}))
+		},
+		clear(){
+			document.getElementById("output").innerHTML = ''
+		}
+	}
+
+	im.on('bind', function(event_type, data) {
+		this.client_id = data.client_id
+		document.getElementById("output").innerHTML += "Received message:" + data.msg + "<br><br>";
+	})
 
 	// 当连接打开时执行
-	ws1.onopen = function(event) {
+	ws.onopen = function(event) {
 		console.log('onopen')
 		document.getElementById("output").innerHTML += "Connected to WebSocket server.<br>";
 	};
+	
 
 	// 当接收到消息时执行
-	ws1.onmessage = function(event) {
-		console.log('message')
-
-		document.getElementById("output").innerHTML += "Received message: " + event.data + "<br>";
+	ws.onmessage = function(event) {
+		console.log('message', event.data)
+		var data = JSON.parse(event.data || '{}')
+		im.emit(data)
 	};
 
+	function getMsgStr(event) {
+		var event_type = event.event_type
+	}
+
 	// 当连接关闭时执行
-	ws1.onclose = function(event) {
+	ws.onclose = function(event) {
+		console.log('close')
 		document.getElementById("output").innerHTML += "Disconnected from WebSocket server.<br>";
 	};
 </script>

@@ -3,9 +3,13 @@
 namespace Wpjscc\Websocket;
 
 use Ratchet\RFC6455\Messaging\Message;
+use Evenement\EventEmitterInterface;
+use Evenement\EventEmitterTrait;
 
-class Im
+class Im implements EventEmitterInterface
 {
+    use EventEmitterTrait;
+
     public static $clients;
     public static $client_id_to_client = [];
 
@@ -17,15 +21,28 @@ class Im
     public function __invoke(WebSocketConnection $conn)
     {
         $conn->on('open', function($conn) {
-            $conn->send($conn->client_id);
             $this->onOpen($conn);
+            $this->emit('open', [$conn]);
         });
 
         $conn->on('message', function (Message $message) use ($conn) {
+            $this->emit('message', [$conn, $message]);
+
+            try {
+                $data = json_decode($message->getPayload(), true);
+                if (isset($data['event_type']) && !in_array($data['event_type'], ['open', 'message', 'close'])) {
+                    $this->emit($data['event_type'], [$conn, $data['data'] ?? []]);
+                }
+            } catch (\Throwable $th) {
+                //throw $th;
+            }
+
             $this->onMessage($conn, $message);
         });
+
         $conn->on('close', function ($code, $conn, $reason) {
             $this->onClose($conn);
+            $this->emit('close', [$code, $conn, $reason]);
         });
     }
 
@@ -38,8 +55,8 @@ class Im
     public function onMessage(WebSocketConnection $from, $msg)
     {
         // todo handle message
-        echo $msg."\n";
-        $from->send($msg);
+        // echo $msg."\n";
+        // $from->send($msg);
     }
 
     public function onClose(WebSocketConnection $conn)
@@ -82,11 +99,13 @@ class Im
         
         // 避免重复加入
         if (static::$groups[$groupId]->contains($client)) {
-            return;
+            return 1;
         }
 
         static::$groups[$groupId]->attach($client);
         static::$client_id_to_group_ids[$client->client_id][$groupId] = $groupId;
+
+        return true;
     }
 
     public static function leaveGroup($groupId, $client)
@@ -106,8 +125,10 @@ class Im
                 if (count(static::$client_id_to_group_ids[$client->client_id]) == 0) {
                     unset(static::$client_id_to_group_ids[$client->client_id]);
                 }
+                return true;
             }
         }
+        return 1;
     }
 
     public static function leaveAllGroup($client)
@@ -128,6 +149,7 @@ class Im
                 }
                 $client->send($msg);
             }
+            return true;
         }
     }
 
