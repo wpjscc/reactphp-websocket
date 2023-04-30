@@ -1,4 +1,5 @@
 {
+    "name": "wpjscc/reactphp-websocket",
     "require": {
         "react/http": "^1.9",
         "guzzlehttp/psr7": "^2.0 || ^1.7",
