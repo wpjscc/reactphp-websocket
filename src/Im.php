@@ -61,6 +61,9 @@ class Im implements EventEmitterInterface
 
     public function onClose(WebSocketConnection $conn)
     {
+
+        $this->emit('beforeClose', [$conn]);
+
         // 清除链接信息
         static::$clients->detach($conn);
         unset(static::$client_id_to_client[$conn->client_id]);

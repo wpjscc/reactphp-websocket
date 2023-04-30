@@ -234,12 +234,16 @@ class ImClient
     }
 
     // 给clientId下的所有房间发送消息
-    public static function sendMessageToGroupByOnlyClientId($client_id, $message, $excludeIds = [])
+    public static function sendMessageToGroupByOnlyClientId($client_id, $message, $excludeCliientIds = [])
     {
         $group_ids = Im::$client_id_to_group_ids[$client_id] ?? [];
 
         foreach ($group_ids as $group_id) {
-            Im::sendMessageToGroup($group_id, $message, $excludeIds);
+            if (is_array($message)) {
+                $message['data']['group_id'] = $group_id;
+                $message = json_encode($message);
+            }
+            Im::sendMessageToGroup($group_id, $message, $excludeCliientIds);
         }
     }
 

@@ -32,6 +32,43 @@ $im->on('echo', function(WebSocketConnection $conn, $data){
     ]));
 });
 
+$im->on('sendMessage', function(WebSocketConnection $conn, $data){
+    $data['group_id'] = $data['group_id'] ?? 1;
+    ImClient::joinGroupByClientId($data['group_id'], $conn->client_id);
+    $data['client_id'] = $conn->client_id;
+    ImClient::sendMessageToGroupByClientId($data['group_id'], json_encode([
+        'event_type' => 'sendMessage',
+        'data' => $data
+    ]));
+});
+
+$im->on('beforeClose', function(WebSocketConnection $conn){
+    Imclient::sendMessageToGroupByOnlyClientId($conn->client_id, [
+        'event_type' => 'sendMessage',
+        'data' => [
+            'id' => 0,
+            'from' => [
+                'id' => 0,
+                'name' => '系统消息',
+                'avatar' => [
+                    'url' => 'https://picsum.photos/300'
+                ],
+            ],
+            'to' => [
+                'id' => 0,
+                'name' => '系统消息',
+                'avatar' => [
+                    'url' => 'https://picsum.photos/300'
+                ],
+            ],
+            'data' => [
+                'content' => '【'.$conn->client_id.'】'.'离开了聊天室'
+            ],
+        ]
+        
+    ]);
+});
+
 $im->on('sendMessageByClientId', function(WebSocketConnection $from, $data){
     $client_id = $data['client_id'] ?? '';
     $msg = $data['value'] ?? '';
