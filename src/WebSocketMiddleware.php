@@ -69,9 +69,36 @@ final class WebSocketMiddleware
         $inStream  = new ThroughStream();
         $outStream = new ThroughStream();
 
+
+        /**
+         * $read = new ThroughStream;
+         * $write = new ThroughStream;
+         * $compositeStream = new CompositeStream($read, $write);
+         * $compositeStream1 = new CompositeStream($write, $read);
+         * 
+         * // 1 监听到的是 $read 的写事件
+         * $compositeStream->on('data', function($buffer){
+         * 
+         * });
+         * // 2 监听到的是 $write 的写事件
+         * $compositeStream1->on('data', function($buffer){
+         * 
+         * });
+         * 
+         * 
+         * // 会触发 2
+         * $compositeStream->write('hello world');
+         * 
+         * // 会触发1
+         * $compositeStream1->write('hello world');
+         * 
+         */
+
+
         $response = new Response(
             $response->getStatusCode(),
             $response->getHeaders(),
+            // websocket 后面请求,会触发 下方的 ->on('data)
             new CompositeStream(
                 $outStream,
                 $inStream
@@ -79,7 +106,7 @@ final class WebSocketMiddleware
         );
 
         $conn = new WebSocketConnection(
-            new CompositeStream($inStream, $outStream),
+            new CompositeStream($inStream, $outStream),// 写数据，触发上方的on('data') ,返回给客户端
             $this->webSocketOptions,
             $permessageDeflateOptions[0]
         );
