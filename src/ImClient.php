@@ -247,6 +247,15 @@ class ImClient
         }
     }
 
+    public static function broadcast($message, $excludeClientIds = [])
+    {
+        foreach (Im::$clients as $client) {
+            if (!in_array($client->client_id, $excludeClientIds)) {
+                $client->send($message);
+            }
+        } 
+    }
+
     // 获取房间的数量
     public static function getGroupCount()
     {
@@ -279,6 +288,12 @@ class ImClient
     public static function getClientCount()
     {
         return count(Im::$client_id_to_client);
+    }
+
+    // 获取所有在线的client id
+    public static function getClientIds()
+    {
+        return array_keys(Im::$client_id_to_client);
     }
 
 

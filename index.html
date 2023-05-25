@@ -10,15 +10,39 @@
 			<h1>WebSocket Example</h1>
 			<div id="output"></div>
 			<div style="display:flex;align-items: center; width: 100%;">
+				<button onclick="im.send('getClientId', {
+					value: ''
+				})">获取当前Client ID</button>
+				
+			</div>
+			
+			<div style="display:flex;align-items: center; width: 100%;">
 				<textarea
 				placeholder=""
 				placeholder-class="textarea-placeholder"/></textarea>
 				<button onclick="im.send('echo', {
 					value: this.parentNode.querySelector('textarea').value
 				})">发送</button>
+				<button onclick="im.send('broadcast', {
+					value: this.parentNode.querySelector('textarea').value,
+				})">广播消息</button>
+				<button onclick="im.send('broadcast', {
+					value: this.parentNode.querySelector('textarea').value,
+					type: 'other'
+				})">广播给其他人消息</button>
 			</div>
 			<div style="display:flex;align-items: center; width: 100%;">
-				<input type="text" placeholder="请打开另外一个窗口获取client_id" id="to_client_id"/>
+				<div id="onOnlineClientIds"></div>
+				<button onclick="im.send('getOnlineClientIds', {
+					value: ''
+				})">获取在线Client ID</button>
+				<button onclick="im.send('getOnlineClientIds', {
+					value: ''
+				})">刷新</button>
+				
+			</div>
+			<div style="display:flex;align-items: center; width: 100%;">
+				<input type="text" placeholder="请输入上方client_id" id="to_client_id"/>
 				<input type="text" placeholder="message" id="to_client_value"/>
 
 				<button onclick="im.send('sendMessageByClientId', {
@@ -146,6 +170,14 @@
 	im.on('bind', function(event_type, data) {
 		this.client_id = data.client_id
 		document.getElementById("output").innerHTML += "Received message:" + data.msg + "<br><br>";
+	})
+
+	im.on('broadcast', function(event_type, data) {
+		document.getElementById("output").innerHTML += data.msg + "<br><br>";
+	})
+
+	im.on('onOnlineClientIds', function(event_type, data) {
+		document.getElementById("onOnlineClientIds").innerHTML =  data.data.join("<br>") + "<br><br>";
 	})
 
 	

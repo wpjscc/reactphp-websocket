@@ -32,6 +32,55 @@ $im->on('echo', function(WebSocketConnection $conn, $data){
     ]));
 });
 
+$im->on('getClientId', function(WebSocketConnection $conn, $data){
+    $conn->send(json_encode([
+        'event_type' => 'echo',
+        'data' => [
+            'client_id' => $conn->client_id,
+            'msg' => '【系统消息】您的Client ID 为'."【{$conn->client_id}】"
+        ]
+    ]));
+});
+$im->on('getOnlineClientIds', function(WebSocketConnection $conn, $data){
+    $conn->send(json_encode([
+        'event_type' => 'onOnlineClientIds',
+        'data' => [
+            'client_id' => $conn->client_id,
+            'msg' => '【系统消息】',
+            'data' => ImClient::getClientIds()
+        ]
+    ]));
+});
+
+$im->on('broadcast', function(WebSocketConnection $conn, $data){
+    
+    $type = $data['type'] ?? 'all';
+    $excludeClientIds = [];
+
+    if ($type == 'other') {
+        $excludeClientIds[] = $conn->client_id;
+    }
+    ImClient::broadcast(json_encode([
+        'event_type' => 'broadcast',
+        'data' => [
+            'client_id' => $conn->client_id,
+            'msg' => '【广播消息】已接收到消息-'.$data['value'] ?? ''
+        ]
+    ]), $excludeClientIds);
+
+    if ($type == 'other') {
+       ImClient::sendMessageByClientId($conn->client_id, 
+            json_encode([
+                'event_type' => 'broadcast',
+                'data' => [
+                    'client_id' => $conn->client_id,
+                    'msg' => '【广播消息】广播成功'
+                ]
+            ])
+        );
+    }
+});
+
 $im->on('sendMessage', function(WebSocketConnection $conn, $data){
     $data['group_id'] = $data['group_id'] ?? 1;
     ImClient::joinGroupByClientId($data['group_id'], $conn->client_id);
@@ -109,7 +158,7 @@ $im->on('sendMessageByClientId', function(WebSocketConnection $from, $data){
         'event_type' => 'sendMessageByClientId',
         'data' => [
             'client_id' => $from->client_id,
-            'msg' => '【'.$from->client_id.'】'.'信息发送成功'
+            'msg' => '【系统消息】'.'【'.$from->client_id.'】'.'信息发送成功'
         ]
     ]));
     ImClient::sendMessageByClientId($client_id, json_encode([
