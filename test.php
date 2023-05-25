@@ -46,6 +46,7 @@ $im->on('beforeClose', function(WebSocketConnection $conn){
     Imclient::sendMessageToGroupByOnlyClientId($conn->client_id, [
         'event_type' => 'sendMessage',
         'data' => [
+            'msg' => '【'.$conn->client_id.'】'.'离开了聊天室',
             'id' => 0,
             'from' => [
                 'id' => 0,
