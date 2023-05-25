@@ -259,7 +259,7 @@ $im->on('sendMessageToGroupByClientId', function(WebSocketConnection $from, $dat
             'event_type' => 'sendMessageToGroupByClientId',
             'data' => [
                 'client_id' => $client_id,
-                'msg' => "【 房间-$group_id 】给其他人发送成功"
+                'msg' => "【 房间-$group_id -人数-$groupCount 】给其他人发送成功"
             ]
         ]));
     }
