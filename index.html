@@ -43,7 +43,23 @@
 					client_id: im.client_id,
 					group_id: document.querySelector('#group_id').value,
 					value: this.previousElementSibling.value
-				})">发送消息</button>
+				})">发送消息（房间内的所有人）</button>
+				<button onclick="im.send('sendMessageToGroupByClientId', {
+					client_id: im.client_id,
+					group_id: document.querySelector('#group_id').value,
+					value: this.previousElementSibling.value,
+					type: 'other'
+				})">发送消息（房间内的其他人）</button>
+				<button onclick="
+				for (let index = 0; index < 100; index++) {
+					im.send('sendMessageToGroupByClientId', {
+						client_id: im.client_id,
+						group_id: document.querySelector('#group_id').value,
+						value: this.previousElementSibling.value+'-'+index
+					})
+				}
+				
+				">发送100次</button>
 			</div>
 			<div style="display:flex;align-items: center; width: 100%;">
 				<button
@@ -59,11 +75,12 @@
 
 <script>
 	// 创建 WebSocket 实例
-	var ws = new WebSocket("ws://10.8.0.9:8088/websocket");
 
 
 	var im = {
 		client_id: null,
+		open: false,
+		ws: null,
 		emit(event) {
 			if (this[event.event_type]){
 				this[event.event_type](event.event_type, event.data)
@@ -79,44 +96,58 @@
 			this[eventName] = callback.bind(this)
 		},
 		send(event_type, data) {
-			ws.send(JSON.stringify({
+			this.ws.send(JSON.stringify({
 				event_type,
 				data
 			}))
 		},
+
 		clear(){
 			document.getElementById("output").innerHTML = ''
+		},
+		connect(){
+			if (this.open) {
+				return ;
+			}
+			this.ws = new WebSocket("ws://10.8.0.9:8088/websocket");
+			// 当连接打开时执行
+			this.ws.onopen = (event) =>  {
+				this.open = true
+				console.log('onopen')
+				document.getElementById("output").innerHTML += "Connected to WebSocket server.<br>";
+			};
+			
+
+			// 当接收到消息时执行
+			this.ws.onmessage = function(event) {
+				console.log('message', event.data)
+				var data = JSON.parse(event.data || '{}')
+				im.emit(data)
+			};
+
+			// 当连接关闭时执行
+			this.ws.onclose = (event) =>  {
+
+				this.open = false
+				console.log('close')
+				document.getElementById("output").innerHTML += "Disconnected from WebSocket server.<br>";
+				document.getElementById("output").innerHTML += "5秒后开始重连.<br>";
+				
+				setTimeout(() => {
+					this.connect()
+				}, 5000);
+			};
 		}
 	}
+
+	im.connect()
 
 	im.on('bind', function(event_type, data) {
 		this.client_id = data.client_id
 		document.getElementById("output").innerHTML += "Received message:" + data.msg + "<br><br>";
 	})
 
-	// 当连接打开时执行
-	ws.onopen = function(event) {
-		console.log('onopen')
-		document.getElementById("output").innerHTML += "Connected to WebSocket server.<br>";
-	};
 	
-
-	// 当接收到消息时执行
-	ws.onmessage = function(event) {
-		console.log('message', event.data)
-		var data = JSON.parse(event.data || '{}')
-		im.emit(data)
-	};
-
-	function getMsgStr(event) {
-		var event_type = event.event_type
-	}
-
-	// 当连接关闭时执行
-	ws.onclose = function(event) {
-		console.log('close')
-		document.getElementById("output").innerHTML += "Disconnected from WebSocket server.<br>";
-	};
 </script>
 
 </body>
