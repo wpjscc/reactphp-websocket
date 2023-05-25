@@ -38,7 +38,7 @@
 				})">离开房间</button>
 				<textarea
 				placeholder=""
-				placeholder-class="textarea-placeholder"></textarea>
+				placeholder-class="textarea-placeholder" id="group_value"></textarea>
 				<button onclick="im.send('sendMessageToGroupByClientId', {
 					client_id: im.client_id,
 					group_id: document.querySelector('#group_id').value,
@@ -47,7 +47,7 @@
 				<button onclick="im.send('sendMessageToGroupByClientId', {
 					client_id: im.client_id,
 					group_id: document.querySelector('#group_id').value,
-					value: this.previousElementSibling.value,
+					value: document.getElementById('group_value').value,
 					type: 'other'
 				})">发送消息（房间内的其他人）</button>
 				<button onclick="
@@ -55,11 +55,12 @@
 					im.send('sendMessageToGroupByClientId', {
 						client_id: im.client_id,
 						group_id: document.querySelector('#group_id').value,
-						value: this.previousElementSibling.value+'-'+index
+						value: document.getElementById('group_value').value+'-'+index,
+						type: 'other'
 					})
 				}
 				
-				">发送100次</button>
+				">发送10次(房间内的其他人)</button>
 			</div>
 			<div style="display:flex;align-items: center; width: 100%;">
 				<button

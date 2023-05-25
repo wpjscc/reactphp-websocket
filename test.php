@@ -109,7 +109,7 @@ $im->on('sendMessageByClientId', function(WebSocketConnection $from, $data){
         'event_type' => 'sendMessageByClientId',
         'data' => [
             'client_id' => $from->client_id,
-            'msg' => '【from】【'.$from->client_id.'】'.'发送成功'
+            'msg' => '【'.$from->client_id.'】'.'信息发送成功'
         ]
     ]));
     ImClient::sendMessageByClientId($client_id, json_encode([
@@ -143,12 +143,14 @@ $im->on('joinGroupByClientId', function(WebSocketConnection $from, $data){
         $msg = "已经加入房间-$group_id";
     } 
 
+    $groupCount = ImClient::getGroupClientCount($group_id);
+
     // 加入房间后发送一条消息（不需要绑定）
     ImClient::sendMessageToGroupByClientId($group_id, json_encode([
         'event_type' => 'joinGroupByClientId',
         'data' => [
             'client_id' => $client_id,
-            'msg' => "【 房间-$group_id 】".'【'.$client_id.'】'.$msg
+            'msg' => "【 房间-$group_id -人数-$groupCount 】".'【'.$client_id.'】'.$msg
         ]
     ]));
     // 你已经加入的房间为
@@ -158,7 +160,7 @@ $im->on('joinGroupByClientId', function(WebSocketConnection $from, $data){
         'event_type' => 'joinGroupByClientId',
         'data' => [
             'client_id' => $client_id,
-            'msg' => "【 房间-$group_id 】".'【'.$client_id.'】加入的所有房间ID为'.implode(',', $groupIds)
+            'msg' => "【 房间-$group_id -人数-$groupCount 】".'【'.$client_id.'】加入的所有房间ID为'.implode(',', $groupIds)
         ]
     ]));
 
@@ -185,13 +187,14 @@ $im->on('leaveGroupByClientId', function(WebSocketConnection $from, $data){
     } elseif ($state === 1) {
         $msg = "已经离开房间-$group_id";
     } 
+    $groupCount = ImClient::getGroupClientCount($group_id);
 
     // 离开房间后发送一条消息（不需要绑定）
     ImClient::sendMessageToGroupByClientId($group_id, json_encode([
         'event_type' => 'leaveGroupByClientId',
         'data' => [
             'client_id' => $client_id,
-            'msg' => "【 房间-$group_id 】".'【'.$client_id.'】'.$msg
+            'msg' => "【 房间-$group_id -人数-$groupCount 】".'【'.$client_id.'】'.$msg
         ]
     ]));
 
@@ -201,7 +204,7 @@ $im->on('leaveGroupByClientId', function(WebSocketConnection $from, $data){
         'event_type' => 'leaveGroupByClientId',
         'data' => [
             'client_id' => $client_id,
-            'msg' => "【 房间-$group_id 】".'【'.$client_id.'】'.$msg.'您加入的所有房间ID为'.implode(',', $groupIds)
+            'msg' => "【 房间-$group_id -人数-$groupCount 】".'【'.$client_id.'】'.$msg.'您加入的所有房间ID为'.implode(',', $groupIds)
         ]
     ]));
 });
@@ -220,13 +223,14 @@ $im->on('sendMessageToGroupByClientId', function(WebSocketConnection $from, $dat
         ]));
         return;
     }
+    $groupCount = ImClient::getGroupClientCount($group_id);
 
     if (!ImClient::isInGroupByClientId($group_id, $client_id)) {
         ImClient::sendMessageByClientId($client_id, json_encode([
             'event_type' => 'sendMessageToGroupByClientId',
             'data' => [
                 'client_id' => $client_id,
-                'msg' => "【 房间-$group_id 】".'你不在 '.$group_id.' 中'
+                'msg' => "【 房间-$group_id -人数-$groupCount 】".'你不在 '.$group_id.' 中'
             ]
         ]));
         return;
@@ -239,13 +243,14 @@ $im->on('sendMessageToGroupByClientId', function(WebSocketConnection $from, $dat
             $client_id
         ];
     }
+    $groupCount = ImClient::getGroupClientCount($group_id);
 
 
     $state = ImClient::sendMessageToGroupByClientId($group_id, json_encode([
         'event_type' => 'sendMessageToGroupByClientId',
         'data' => [
             'client_id' => $client_id,
-            'msg' => "【 房间-$group_id 】".'【'.$client_id.'】'.$msg
+            'msg' => "【 房间-$group_id -人数-$groupCount 】".'【'.$client_id.'】'.$msg
         ]
     ]), $excludeClientIds);
 
@@ -266,7 +271,7 @@ $im->on('sendMessageToGroupByClientId', function(WebSocketConnection $from, $dat
             'event_type' => 'sendMessageToGroupByClientId',
             'data' => [
                 'client_id' => $client_id,
-                'msg' => "【 房间-$group_id 】".'【'.$client_id.'】'.$msg
+                'msg' => "【 房间-$group_id -人数-$groupCount 】".'【'.$client_id.'】'.$msg
             ]
         ]));
     } elseif ($state === 1) {
@@ -275,7 +280,7 @@ $im->on('sendMessageToGroupByClientId', function(WebSocketConnection $from, $dat
             'event_type' => 'sendMessageToGroupByClientId',
             'data' => [
                 'client_id' => $client_id,
-                'msg' =>"【 房间-$group_id 】".'【'.$client_id.'】'. $msg
+                'msg' =>"【 房间-$group_id -人数-$groupCount 】".'【'.$client_id.'】'. $msg
             ]
         ]));
     }
