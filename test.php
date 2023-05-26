@@ -9,8 +9,9 @@ use Wpjscc\Websocket\ImClient;
 use Wpjscc\Websocket\Helper;
 use Wpjscc\Websocket\WebSocketConnection;
 
+require './master.php';
 
-$im = new Im;
+$im = new Im($master);
 
 $im->on('open', function(WebSocketConnection $conn){
     ImClient::sendMessageByClientId($conn->client_id, json_encode([

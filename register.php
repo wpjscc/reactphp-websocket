@@ -4,46 +4,138 @@ use Evenement\EventEmitter;
 
 require './vendor/autoload.php';
 
-$socket = new React\Socket\SocketServer('0.0.0.0:9234');
+
+
+class Register extends EventEmitter
+{
+    static $workers;
+    static $masters;
+
+    public static function reply($connection)
+    {
+        static::write($connection, [
+            'event' => 'register_reply',
+            'data' => []
+        ]);
+    }
+
+    public static function broadcast()
+    {
+        foreach (static::$masters as $master) {
+            static::broadcastToWorkers($master);
+        }
+    }
+
+    public static function broadcastToWorkers($master, $workers = [])
+    {
+        $workers = $workers ?: static::$workers;
+        foreach ($workers as $worker) {
+            $nejson = new \Clue\React\NDJson\Encoder($worker);
+            // 将servet 广播给worker
+            $nejson->write([
+                'event' => 'broadcast_master_address',
+                'data' => static::$masters[$master]
+            ]);
+        }
+    }
+
+    public static function broadcastMasterToWorkerByWorker($worker)
+    {
+        foreach (static::$masters as $master) {
+            static::broadcastToWorkers($master, [ 
+                $worker 
+            ]);
+        }
+    }
+
+    public static function write($connection, $data)
+    {
+        (new \Clue\React\NDJson\Encoder($connection))->write($data);
+    }
+
+    public static function pong($connection)
+    {
+        static::write($connection, [
+            'cmd' => 'pong'
+        ]);
+    }
+
+    public static function info($msg)
+    {
+        if ($msg instanceof \Exception) {
+            echo json_encode([
+                'file' => $msg->getFile(),
+                'line' => $msg->getLine(),
+                'msg' => $msg->getMessage(),
+            ]);
+        } else {
+            echo $msg."\n";
+        }
+    }
+}
+
+Register::$workers = new \SplObjectStorage;
+Register::$masters = new \SplObjectStorage;
+
+// \React\EventLoop\Loop::get()->addPeriodicTimer(3, function() {
+//     Register::broadcast();
+// });
+
+
+
 
 $register = new Register;
 
-// worker 链接
-// 定时广播给 server
+// 注册中心打开了(还不知道此时来的是master还是worker)
+$register->on('open', function($connection){
+    Register::info('open');
+});
 
-$register->on('worker_comming', function($connection, $data) {
+// worker 来注册了
+$register->on('worker_coming', function($connection, $data) {
+    Register::info('worker_coming');
+    Register::reply($connection);
     Register::$workers->attach($connection, $data);
-    Register::broadcastToServerByWorker($connection);
+    Register::broadcastMasterToWorkerByWorker($connection);
 });
 
 
-// server 链接
-$register->on('server_comming', function($connection, $data) {
-    Register::$servers->attach($connection, $data);
-    Register::broadcastToServer($connection);
+// master 来注册了
+$register->on('master_coming', function($connection, $data) {
+    Register::info('master_coming');
+    Register::reply($connection);
+    Register::$masters->attach($connection, $data);
+    Register::broadcastToWorkers($connection);
 });
 
+// 心跳
+$register->on('ping', function($connection, $data) {
+    Register::info('ping');
+    Register::pong($connection);
+});
+
+// 关闭连接了
 $register->on('close', function($connection) {
-
     if (Register::$workers->contains($connection)) {
         Register::$workers->detach($connection);
+        Register::info('worker_close');
     }
-
-    if (Register::$servers->contains($connection)) {
-        Register::$servers->detach($connection);
+    if (Register::$masters->contains($connection)) {
+        Register::$masters->detach($connection);
+        Register::info('master_close');
     }
 });
 
-
-
+$socket = new React\Socket\SocketServer('0.0.0.0:9234');
 
 $socket->on('connection', function (React\Socket\ConnectionInterface $connection) use ($register) {
-
-    $ndjson = new \Clue\React\NDJson\Decoder($connection);
+    $register->emit('open', [$connection]);
+    $ndjson = new \Clue\React\NDJson\Decoder($connection, true);
     
     $ndjson->on('data', function ($data) use ($connection, $register) {
-        if ($data['cmd'] ?? '') {
-            $register->emit($data['cmd'], [$connection, $data['data'] ?? []]);
+        $event = ($data['cmd'] ?? '') ?: ($data['event'] ?? '');
+        if ($event) {
+            $register->emit($event, [$connection, $data['data'] ?? []]);
         }
     });
 
@@ -51,47 +143,10 @@ $socket->on('connection', function (React\Socket\ConnectionInterface $connection
         $register->emit('close', [$connection]);
     });
 
+    $ndjson->on('error', function ($e)  {
+        Register::info($e);
+    });
+
 });
 
-
-class Register extends EventEmitter
-{
-    static $workers = new \SplObjectStorage;
-    static $servers = new \SplObjectStorage;
-
-    public static function broadcast()
-    {
-        foreach (static::$servers as $server) {
-            static::broadcastToServer($server);
-        }
-    }
-
-    public static function broadcastToServer($server, $workers = [])
-    {
-        $workers = $workers ?: static::$workers;
-        foreach ($workers as $worker) {
-            $nejson = new \Clue\React\NDJson\Encoder($server);
-            // 将worker 广播给server
-            $nejson->write([
-                'cmd' => 'worker_comming',
-                'data' => static::$workers[$worker]
-            ]);
-        }
-    }
-
-    public static function broadcastToServerByWorker($worker)
-    {
-        foreach (static::$servers as $server) {
-            static::broadcastToServer($server, [ 
-                $worker 
-            ]);
-        }
-    }
-}
-
-
-\React\EventLoop\Loop::get()->addPeriodicTimer(3, function() {
-    Register::broadcast();
-});
-
-echo "Register Listen At: http://0.0.0.0:9234\n";
+echo "Register Listen At: 0.0.0.0:9234\n";

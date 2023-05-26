@@ -12,21 +12,28 @@ class Im implements EventEmitterInterface
 
     public static $clients;
     public static $client_id_to_client = [];
+    public $master;
 
-    public function __construct() 
+    public function __construct($master) 
     {
+        $this->master = $master;
         static::$clients = new \SplObjectStorage;
     }
     
     public function __invoke(WebSocketConnection $conn)
     {
-        $conn->on('open', function($conn) {
+        $conn->on('open', function($conn, $request) {
             $this->onOpen($conn);
             $this->emit('open', [$conn]);
+            $this->master->emit('client_open', [$conn, [
+                'headers' => $request->getHeaders(),
+                'get' => $request->getQueryParams()
+            ]]);
         });
 
         $conn->on('message', function (Message $message) use ($conn) {
             $this->emit('message', [$conn, $message]);
+            $this->master->emit('client_message', [$conn, $message->getPayload()]);
 
             try {
                 $data = json_decode($message->getPayload(), true);
@@ -43,6 +50,7 @@ class Im implements EventEmitterInterface
         $conn->on('close', function ($code, $conn, $reason) {
             $this->onClose($conn);
             $this->emit('close', [$code, $conn, $reason]);
+            $this->master->emit('client_close', [$conn]);
         });
     }
 
