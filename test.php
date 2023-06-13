@@ -8,20 +8,50 @@ use Wpjscc\Websocket\Im;
 use Wpjscc\Websocket\ImClient;
 use Wpjscc\Websocket\Helper;
 use Wpjscc\Websocket\WebSocketConnection;
+use Wpjscc\MasterWorker\ConnectionManager;
+use Wpjscc\MasterWorker\Master;
 
-require './master.php';
 
-$im = new Im($master);
+Master::instance()->run();
 
-$im->on('open', function(WebSocketConnection $conn){
+$im = new Im();
+
+$im->on('open', function(WebSocketConnection $conn, $request){
+    Master::instance()->emit('client_open', [$conn, [
+        'headers' => $request->getHeaders(),
+        'get' => $request->getQueryParams()
+    ]]);
+
     ImClient::sendMessageByClientId($conn->client_id, json_encode([
         'event_type' => 'bind',
         'data' => [
-            'client_id' => $conn->client_id,
-            'msg' => 'bind success:'.$conn->client_id
+            // 'client_id' => $conn->client_id.'-'. $conn->_id,
+            'client_id' => $conn->_id,
+            'msg' => 'bind success:'.$conn->client_id. '-'. $conn->_id
         ]
     ]));
 });
+
+$im->on('message', function(WebSocketConnection $conn, $message) use ($im) {
+    Master::instance()->emit('client_message', [$conn, $message->getPayload()]);
+
+    try {
+        $data = json_decode($message->getPayload(), true);
+        if (isset($data['event_type']) && !in_array($data['event_type'], ['open', 'message', 'close'])) {
+            $im->emit($data['event_type'], [$conn, $data['data'] ?? []]);
+        }
+    } catch (\Throwable $th) {
+        //throw $th;
+    }
+});
+
+$im->on('close', function(WebSocketConnection $conn){
+    Master::instance()->emit('client_close', [$conn]);
+    echo "client:count:". ConnectionManager::instance('client')->getConnectionCount()."\n";
+});
+
+
+
 
 $im->on('echo', function(WebSocketConnection $conn, $data){
     $conn->send(json_encode([
@@ -515,10 +545,19 @@ $server = new \React\Http\HttpServer(
     }
 );
 
-$socket = new \React\Socket\SocketServer('0.0.0.0:8088');
+function getParam($key, $default = null) {
+    foreach ($GLOBALS['argv'] as $arg) {
+        if (strpos($arg, $key) !==false) {
+            return explode('=', $arg)[1];
+        }
+    }
+    return $default;
+}
+
+$socket = new \React\Socket\SocketServer(getParam('--server-address')?:'0.0.0.0:8088');
 $server->listen($socket);
 
-echo "Listen At: http://0.0.0.0:8088\n";
+echo "Listen At: ".getParam('--server-address')?:'0.0.0.0:8088';
 
 $startTime = time();
 

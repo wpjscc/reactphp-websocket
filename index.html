@@ -15,6 +15,12 @@
 				})">获取当前Client ID</button>
 				
 			</div>
+			<div style="display:flex;align-items: center; width: 100%;">
+				<button onclick="im.send('get_IdData', {
+					value: ''
+				})">获取当前上下文信息</button>
+				
+			</div>
 			
 			<div style="display:flex;align-items: center; width: 100%;">
 				<textarea
@@ -31,6 +37,25 @@
 					type: 'other'
 				})">广播给其他人消息</button>
 			</div>
+			<div style="display:flex;align-items: center; width: 100%;">
+				<input
+				placeholder="请输入用户ID"
+				placeholder-class="textarea-placeholder"/>
+				<button onclick="im.send('bindId', {
+					client_id: im.client_id,
+					value: this.parentNode.querySelector('input').value
+				})">绑定到当前ID</button>
+				<button onclick="im.send('unBindId', {
+					client_id: im.client_id,
+					value: this.parentNode.querySelector('input').value
+				})">解绑ID</button>
+				<button onclick="im.send('unBind_Id', {
+				})">解绑_ID</button>
+				<button onclick="im.send('sendMessageById', {
+					value: this.parentNode.querySelector('input').value,
+				})">给当前ID下的客户端发送消息</button>
+			</div>
+
 			<div style="display:flex;align-items: center; width: 100%;">
 				<div id="onOnlineClientIds"></div>
 				<button onclick="im.send('getOnlineClientIds', {
@@ -112,6 +137,9 @@
 			} else {
 				if (event.data && event.data.msg) {
 					document.getElementById("output").innerHTML += "" + event.data.msg + "<br><br>";
+					if (event.data.data) {
+						document.getElementById("output").innerHTML += "" + JSON.stringify(event.data.data) + "<br><br>";
+					}
 				} else {
 					console.log('不支持的事件类型')
 				}
@@ -134,7 +162,7 @@
 			if (this.open) {
 				return ;
 			}
-			this.ws = new WebSocket("ws://10.8.0.9:8088/websocket");
+			this.ws = new WebSocket("ws://"+location.host+"/websocket?a=b");
 			// 当连接打开时执行
 			this.ws.onopen = (event) =>  {
 				this.open = true
@@ -174,10 +202,13 @@
 
 	im.on('broadcast', function(event_type, data) {
 		document.getElementById("output").innerHTML += data.msg + "<br><br>";
+		if (data.data) {
+			document.getElementById("output").innerHTML += "" +  JSON.stringify(data.data) + "<br><br>";
+		}
 	})
 
 	im.on('onOnlineClientIds', function(event_type, data) {
-		document.getElementById("onOnlineClientIds").innerHTML =  data.data.join("<br>") + "<br><br>";
+		document.getElementById("onOnlineClientIds").innerHTML = JSON.stringify(data.data) + "<br><br>";
 	})
 
 	

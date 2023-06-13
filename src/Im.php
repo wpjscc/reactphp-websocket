@@ -12,11 +12,9 @@ class Im implements EventEmitterInterface
 
     public static $clients;
     public static $client_id_to_client = [];
-    public $master;
 
-    public function __construct($master) 
+    public function __construct() 
     {
-        $this->master = $master;
         static::$clients = new \SplObjectStorage;
     }
     
@@ -24,22 +22,22 @@ class Im implements EventEmitterInterface
     {
         $conn->on('open', function($conn, $request) {
             $this->onOpen($conn);
-            $this->emit('open', [$conn]);
-            $this->master->emit('client_open', [$conn, [
-                'headers' => $request->getHeaders(),
-                'get' => $request->getQueryParams()
-            ]]);
+            $this->emit('open', [$conn, $request]);
+            // $this->master->emit('client_open', [$conn, [
+            //     'headers' => $request->getHeaders(),
+            //     'get' => $request->getQueryParams()
+            // ]]);
         });
 
         $conn->on('message', function (Message $message) use ($conn) {
             $this->emit('message', [$conn, $message]);
-            $this->master->emit('client_message', [$conn, $message->getPayload()]);
+            // $this->master->emit('client_message', [$conn, $message->getPayload()]);
 
             try {
-                $data = json_decode($message->getPayload(), true);
-                if (isset($data['event_type']) && !in_array($data['event_type'], ['open', 'message', 'close'])) {
-                    $this->emit($data['event_type'], [$conn, $data['data'] ?? []]);
-                }
+                // $data = json_decode($message->getPayload(), true);
+                // if (isset($data['event_type']) && !in_array($data['event_type'], ['open', 'message', 'close'])) {
+                //     $this->emit($data['event_type'], [$conn, $data['data'] ?? []]);
+                // }
             } catch (\Throwable $th) {
                 //throw $th;
             }
@@ -49,8 +47,7 @@ class Im implements EventEmitterInterface
 
         $conn->on('close', function ($code, $conn, $reason) {
             $this->onClose($conn);
-            $this->emit('close', [$code, $conn, $reason]);
-            $this->master->emit('client_close', [$conn]);
+            $this->emit('close', [$conn, $code, $reason]);
         });
     }
 
