@@ -211,6 +211,10 @@
 		document.getElementById("onOnlineClientIds").innerHTML = JSON.stringify(data.data) + "<br><br>";
 	})
 
+	setInterval(() => {
+		im.send('ping')
+	}, 20000);
+
 	
 </script>
 

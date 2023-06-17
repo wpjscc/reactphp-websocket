@@ -6,13 +6,12 @@ use Evenement\EventEmitterInterface;
 use Evenement\EventEmitterTrait;
 use Ratchet\RFC6455\Handshake\PermessageDeflateOptions;
 use Ratchet\RFC6455\Messaging\CloseFrameChecker;
-use Ratchet\RFC6455\Messaging\FrameInterface;
 use Ratchet\RFC6455\Messaging\Frame;
 use Ratchet\RFC6455\Messaging\Message;
 use Ratchet\RFC6455\Messaging\MessageBuffer;
 use Ratchet\RFC6455\Messaging\MessageInterface;
 use React\Stream\DuplexStreamInterface;
-use RingCentral\Psr7;
+use React\EventLoop\Loop;
 
 class WebSocketConnection implements EventEmitterInterface
 {
@@ -28,6 +27,8 @@ class WebSocketConnection implements EventEmitterInterface
 
     private $messageBuffer;
 
+    public $activeTime = 0;
+
     public $client_id;
 
     public function __construct(DuplexStreamInterface $stream, WebSocketOptions $webSocketOptions, PermessageDeflateOptions $permessageDeflateOptions)
@@ -40,13 +41,19 @@ class WebSocketConnection implements EventEmitterInterface
         $mb = new MessageBuffer(
             new CloseFrameChecker(),
             function (Message $message) {
+                $this->activeTime = time();
                 $this->emit('message', [$message, $this]);
             },
             function (Frame $frame) {
                 switch ($frame->getOpcode()) {
                     case Frame::OP_PING:
+                        $this->activeTime = time();
                         $this->stream->write((new Frame($frame->getPayload(), true, Frame::OP_PONG))->getContents());
                         return;
+                    case Frame::OP_PONG:
+                        $this->activeTime = time();
+                        $this->emit('pong', [$frame, $this]);
+                        break;
                     case Frame::OP_CLOSE:
                         $closeCode = unpack('n*', substr($frame->getPayload(), 0, 2));
                         $closeCode = reset($closeCode) ?: 1000;
@@ -75,10 +82,21 @@ class WebSocketConnection implements EventEmitterInterface
         $this->messageBuffer = $mb;
 
         $stream->on('data', [$mb, 'onData']);
-        $stream->on('close', function(){
 
+
+        $timer = Loop::addPeriodicTimer(30, function()  {
+            if (time()-$this->activeTime > 30) {
+                $this->close(1000, 'over 30 close ');
+            }
+        });
+
+        $stream->on('close', function() use (&$timer) {
+            Loop::cancelTimer($timer);
+            $timer = null;
             $this->emit('close', [0, $this, '']);
         });
+
+
     }
 
     public function send($data)

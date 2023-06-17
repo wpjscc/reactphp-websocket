@@ -19,6 +19,12 @@ final class WebSocketMiddleware
 
     public function __construct(array $paths = [], callable $connectionHandler = null, array $subProtocols = [], WebSocketOptions $webSocketOptions = null)
     {
+        if (false === strpos(PHP_VERSION, "hiphop")) {
+            gc_enable();
+        }
+
+        set_time_limit(0);
+        ob_implicit_flush();
         $this->paths             = $paths;
         $this->connectionHandler = $connectionHandler ?: function () {};
         $this->subProtocols      = $subProtocols;
