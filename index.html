@@ -180,7 +180,7 @@
 
 			// 当连接关闭时执行
 			this.ws.onclose = (event) =>  {
-
+				console.log(event)
 				this.open = false
 				console.log('close')
 				document.getElementById("output").innerHTML += "Disconnected from WebSocket server.<br>";

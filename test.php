@@ -22,14 +22,14 @@ $im->on('open', function(WebSocketConnection $conn, $request){
         'get' => $request->getQueryParams()
     ]]);
 
-    ImClient::sendMessageByClientId($conn->client_id, json_encode([
-        'event_type' => 'bind',
-        'data' => [
-            // 'client_id' => $conn->client_id.'-'. $conn->_id,
-            'client_id' => $conn->_id,
-            'msg' => 'bind success:'.$conn->client_id. '-'. $conn->_id
-        ]
-    ]));
+    // ImClient::sendMessageByClientId($conn->client_id, json_encode([
+    //     'event_type' => 'bind',
+    //     'data' => [
+    //         // 'client_id' => $conn->client_id.'-'. $conn->_id,
+    //         'client_id' => $conn->_id,
+    //         'msg' => 'bind success:'.$conn->client_id. '-'. $conn->_id
+    //     ]
+    // ]));
 });
 
 $im->on('message', function(WebSocketConnection $conn, $message) use ($im) {

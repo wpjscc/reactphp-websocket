@@ -76,6 +76,7 @@ class WebSocketConnection implements EventEmitterInterface
 
         $stream->on('data', [$mb, 'onData']);
         $stream->on('close', function(){
+
             $this->emit('close', [0, $this, '']);
         });
     }
