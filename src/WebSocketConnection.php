@@ -55,6 +55,8 @@ class WebSocketConnection implements EventEmitterInterface
                         $this->emit('pong', [$frame, $this]);
                         break;
                     case Frame::OP_CLOSE:
+                        $this->stream->end($frame->getContents());
+
                         $closeCode = unpack('n*', substr($frame->getPayload(), 0, 2));
                         $closeCode = reset($closeCode) ?: 1000;
                         $reason = '';
@@ -62,12 +64,9 @@ class WebSocketConnection implements EventEmitterInterface
                         if ($frame->getPayloadLength() > 2) {
                             $reason = substr($frame->getPayload(), 2);
                         }
-
-                        $this->stream->end($frame->getContents());
-
                         $this->emit('close', [$closeCode, $this, $reason]);
 
-                        $this->send(new Frame(pack('n', $frame->getOpcode()), true, Frame::OP_CLOSE));
+                        // $this->send(new Frame(pack('n', $frame->getOpcode()), true, Frame::OP_CLOSE));
                         return;
                 }
             },
