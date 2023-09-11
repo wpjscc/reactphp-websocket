@@ -110,6 +110,10 @@
 				}
 				
 				">发送10次(房间内的其他人)</button>
+				<button onclick="im.send('message', {
+					roomId: document.querySelector('#group_id').value,
+					text: document.getElementById('group_value').value
+				})">房间内的其他人</button>
 			</div>
 			<div style="display:flex;align-items: center; width: 100%;">
 				<button
@@ -209,6 +213,9 @@
 
 	im.on('onOnlineClientIds', function(event_type, data) {
 		document.getElementById("onOnlineClientIds").innerHTML = JSON.stringify(data.data) + "<br><br>";
+	})
+	im.on('message', function(event_type, data) {
+		document.getElementById("output").innerHTML += JSON.stringify(data) + "<br><br>";
 	})
 
 	setInterval(() => {
